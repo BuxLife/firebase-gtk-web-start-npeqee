@@ -79,14 +79,21 @@ async function main() {
       startRsvpButton.textContent = 'LOGOUT';
       // show guestbook to logged-in users
       guestbookContainer.style.display = 'block';
+
       // Subscribe to the guestbook collection
       subscribeGuestBook();
+      // Subscribe to the user's RSVP
+      subscribeCurrentRSVP(user);
     } else {
       startRsvpButton.textContent = 'RSVP';
       // hide guestbook for non-logged-in users
       guestbookContainer.style.display = 'none';
+
       // Unsubscribe from the guestbook collection
       unsubscribeGuestbook();
+
+      // Unsubscribe from the RSVP colleciton
+      unsubscribeCurrentRSVP();
     }
   });
 
@@ -108,31 +115,6 @@ async function main() {
     return false; 
   });
 
-  // Create query for messages
-  
-  function subscribeGuestBook() {
-    const q = query(collection(db, 'guestbook'), orderBy('timestamp', 'desc'));
-    guestnookListener = onSnapshot(q, snaps => {
-      // Reset page
-      guestbook.innerHTML = '';
-      // Loop through documents in db
-      snaps.forEach(doc => {
-        // Create an HTML entry for each document and add it to the chat. 
-        const entry = document.createElement('p');
-        entry.textContent = doc.data().name + ':' + doc.data().text;
-        guestbook.appendChild(entry);
-      });
-    });
-
-    function unsubscribeGuestbook() {
-      if (guestbookListener != null){
-        guestbookListener();
-        guestbookListener = null;
-      }
-    }
-
-  }
-  
   // Listen for RSVP responses
   rsvpYes.onclick = async () => {
     // Get a reference to the user's document in the attendees collection
@@ -147,7 +129,7 @@ async function main() {
       console.error(e);
     }
   };
-  
+
   rsvpNo.onclick = async () => {
     const userRef = doc(db, 'attendees', auth.currentUser.uid);
     try {
@@ -159,5 +141,66 @@ async function main() {
     }
   };
 
+  const attendingQuery = query(
+    collection(db, 'attendees'), 
+    where('attending', '==', true)
+  );
+
+  const unsubscribe = onSnapshot(attendingQuery, snap => {
+    const newAttendeeCount = snap.docs.length;
+    numberAttending.innerHTML = newAttendeeCount + ' people going';
+  });
 }
 main();
+
+// Listen for guestbook updates
+function subscribeGuestBook() {
+  const q = query(collection(db, 'guestbook'), orderBy('timestamp', 'desc'));
+  guestnookListener = onSnapshot(q, snaps => {
+    // Reset page
+    guestbook.innerHTML = '';
+    // Loop through documents in db
+    snaps.forEach(doc => {
+      // Create an HTML entry for each document and add it to the chat. 
+      const entry = document.createElement('p');
+      entry.textContent = doc.data().name + ':' + doc.data().text;
+      guestbook.appendChild(entry);
+    });
+  });
+}
+
+  // unsubscribe from guestbook updates
+  function unsubscribeGuestbook() {
+    if (guestbookListener != null){
+      guestbookListener();
+      guestbookListener = null;
+    }
+  }
+
+// Listen for attendee list
+function subscribeCurrentRSVP(user) {
+  const ref = doc(db, 'attendees', user.uid);
+  rsvpListener = onSnapshot(ref, dock => {
+    if (doc && doc.data()) {
+      const attendingResponse = doc.data().attending;
+
+      // Update css classes for buttons
+      if (attendingResponse) {
+        rsvp.className = 'clicked';
+        rsvpNo.className = '';
+      } else {
+        rsvpYes.className = '';
+        rsvpNo.className = 'clicked';
+      }
+    }
+  });
+}
+
+function unsubscribeCurrentRSVP() {
+  if (rsvpListener != null) {
+    rsvpListener();
+    rsvpListener = null;
+  }
+  rsvpYes.className = '';
+  rsvpNo.className = '';
+}
