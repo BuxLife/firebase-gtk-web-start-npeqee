@@ -77,10 +77,14 @@ async function main() {
   onAuthStateChanged(auth, user => {
     if (user) {
       startRsvpButton.textContent = 'LOGOUT';
+      // show guestbook to logged-in users
+      guestbookContainer.style.display = 'block';
     } else {
       startRsvpButton.textContent = 'RSVP';
+      // hide guestbook for non-logged-in users
+      guestbookContainer.style.display = 'none';
     }
-  })
+  });
 
   // Listen to the form submission
   form.addEventListener('submit', async e => {
