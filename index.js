@@ -9,8 +9,6 @@ import { getFirestore, addDoc, collection, query, orderBy, onSnapshot, doc, setD
 
 import * as firebaseui from 'firebaseui';
 
-
-
 // Document elements
 const startRsvpButton = document.getElementById('startRsvp');
 const guestbookContainer = document.getElementById('guestbook-container');
@@ -58,19 +56,19 @@ async function main() {
       },
     },
   };
+
   // Initialize the FirebaseUI widget using Firebase. 
-  const ui = new firebaseui.auth.AuthUI(auth);
+  const ui = new firebaseui.auth.AuthUI(getAuth());
 
   // Listen to RSVP button clicks
-  startRsvpButton.addEventListener("click", () => {
+  startRsvpButton.addEventListener('click', () => {
     if (auth.currentUser) {
       // User is signed in, allow user to sign out. 
       signOut(auth);
     } else {
       // No user signed in, allow user to sign in. 
-      ui.start("#firebaseui-auth-container", uiConfig);
+      ui.start('#firebaseui-auth-container', uiConfig);
     }
-    
   });
 
   // Listen to the current Auth state
@@ -102,7 +100,7 @@ async function main() {
     // Prevent the default form redirect
     e.preventDefault();
     // Wrtie a new message to the database collection "guestbook"
-    addDoc(collection(db, 'guestbook'), {
+    await addDoc(collection(db, 'guestbook'), {
       text: input.value, 
       timestamp: Date.now(), 
       name: auth.currentUser.displayName, 
