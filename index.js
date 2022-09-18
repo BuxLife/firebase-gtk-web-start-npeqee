@@ -5,7 +5,7 @@ import { initializeApp } from 'firebase/app';
 
 // Add the Firebase products and methods that you want to use
 import { getAuth, EmailAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, addDoc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { getFirestore, addDoc, collection, query, orderBy, onSnapshot, doc, setDoc, where } from 'firebase/firestore';
 
 import * as firebaseui from 'firebaseui';
 
@@ -133,6 +133,31 @@ async function main() {
 
   }
   
+  // Listen for RSVP responses
+  rsvpYes.onclick = async () => {
+    // Get a reference to the user's document in the attendees collection
+    const userRef = doc(db, 'attendees', auth.currentUser.uid);
+
+    // If they RSVP'd yes, save a document with attending: true
+    try {
+      await setDoc(userRef, {
+        attending: true
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  
+  rsvpNo.onclick = async () => {
+    const userRef = doc(db, 'attendees', auth.currentUser.uid);
+    try {
+      await setDoc(userRef, {
+        attending: false
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
 }
 main();
