@@ -5,7 +5,7 @@ import { initializeApp } from 'firebase/app';
 
 // Add the Firebase products and methods that you want to use
 import { getAuth, EmailAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
-import {} from 'firebase/firestore';
+import { getFirestore, addDoc, collection } from 'firebase/firestore';
 
 import * as firebaseui from 'firebaseui';
 
@@ -41,6 +41,7 @@ async function main() {
   // Initialize Firebase
   initializeApp(firebaseConfig);
   auth = getAuth();
+  db = getFirestore();
 
   // FirebaseUI config
   const uiConfig = {
@@ -80,5 +81,24 @@ async function main() {
       startRsvpButton.textContent = 'RSVP';
     }
   })
+
+  // Listen to the form submission
+  form.addEventListener('submit', async e => {
+    // Prevent the default form redirect
+    e.preventDefault();
+    // Wrtie a new message to the database collection "guestbook"
+    addDoc(collection(db, 'guestbook'), {
+      text: input.value, 
+      timestamp: Date.now(), 
+      name: auth.currentUser.displayName, 
+      userId: auth.currentUser.uid
+    });
+
+    // Clear message input field. 
+    input.value = '';
+    // Return false to avoid redirect
+    return false; 
+  });
+
 }
 main();
