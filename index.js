@@ -36,37 +36,47 @@ async function main() {
     appId: "1:687879305182:web:be322c3f22bd195e020f4f"
   };
 
-  // Initialize Firebase
-  initializeApp(firebaseConfig);
-  auth = getAuth();
-  db = getFirestore();
+  // Make sure Firebase is initilized
+  try {
+    if (firebaseConfig && firebaseConfig.apiKey) {
+      initializeApp(firebaseConfig);
+    }
+    db = getFirestore();
+    auth = getAuth();
+  } catch (e) {
+    console.log('error:', e);
+    document.getElementById('app').innerHTML =
+      '<h1>Welcome to the Codelab! Add your Firebase config object to <pre>/index.js</pre> and refresh to get started</h1>';
+    throw new Error(
+      'Welcome to the Codelab! Add your Firebase config object from the Firebase Console to `/index.js` and refresh to get started'
+    );
+  }
 
   // FirebaseUI config
   const uiConfig = {
     credentialHelper: firebaseui.auth.CredentialHelper.NONE,
     signInOptions: [
       // Email / Password Provider.
-      EmailAuthProvider.PROVIDER_ID,
+      EmailAuthProvider.PROVIDER_ID
     ],
     callbacks: {
-      signInSuccessWithAuthResult: function (authResult, redirectUrl) {
+      signInSuccessWithAuthResult: function(authResult, redirectUrl) {
         // Handle sign-in.
         // Return false to avoid redirect.
         return false;
-      },
-    },
+      }
+    }
   };
 
-  // Initialize the FirebaseUI widget using Firebase. 
   const ui = new firebaseui.auth.AuthUI(getAuth());
 
   // Listen to RSVP button clicks
   startRsvpButton.addEventListener('click', () => {
     if (auth.currentUser) {
-      // User is signed in, allow user to sign out. 
+      // User is signed in; allows user to sign out
       signOut(auth);
     } else {
-      // No user signed in, allow user to sign in. 
+      // No user is signed in; allows user to sign in
       ui.start('#firebaseui-auth-container', uiConfig);
     }
   });
@@ -75,22 +85,20 @@ async function main() {
   onAuthStateChanged(auth, user => {
     if (user) {
       startRsvpButton.textContent = 'LOGOUT';
-      // show guestbook to logged-in users
+      // Show guestbook to logged-in users
       guestbookContainer.style.display = 'block';
 
       // Subscribe to the guestbook collection
-      subscribeGuestBook();
-      // Subscribe to the user's RSVP
+      subscribeGuestbook();
+      // Subcribe to the user's RSVP
       subscribeCurrentRSVP(user);
     } else {
       startRsvpButton.textContent = 'RSVP';
-      // hide guestbook for non-logged-in users
+      // Hide guestbook for non-logged-in users
       guestbookContainer.style.display = 'none';
-
       // Unsubscribe from the guestbook collection
       unsubscribeGuestbook();
-
-      // Unsubscribe from the RSVP colleciton
+      // Unsubscribe from the guestbook collection
       unsubscribeCurrentRSVP();
     }
   });
@@ -99,26 +107,25 @@ async function main() {
   form.addEventListener('submit', async e => {
     // Prevent the default form redirect
     e.preventDefault();
-    // Wrtie a new message to the database collection "guestbook"
+    // Write a new message to the database collection "guestbook"
     await addDoc(collection(db, 'guestbook'), {
-      text: input.value, 
-      timestamp: Date.now(), 
-      name: auth.currentUser.displayName, 
+      text: input.value,
+      timestamp: Date.now(),
+      name: auth.currentUser.displayName,
       userId: auth.currentUser.uid
     });
-
-    // Clear message input field. 
+    // clear message input field
     input.value = '';
     // Return false to avoid redirect
-    return false; 
+    return false;
   });
 
-  // Listen for RSVP responses
+  // Listen to RSVP responses
   rsvpYes.onclick = async () => {
     // Get a reference to the user's document in the attendees collection
     const userRef = doc(db, 'attendees', auth.currentUser.uid);
 
-    // If they RSVP'd yes, save a document with attending: true
+    // If they RSVP'd yes, save a document with attendi()ng: true
     try {
       await setDoc(userRef, {
         attending: true
@@ -129,7 +136,10 @@ async function main() {
   };
 
   rsvpNo.onclick = async () => {
+    // Get a reference to the user's document in the attendees collection
     const userRef = doc(db, 'attendees', auth.currentUser.uid);
+
+    // If they RSVP'd yes, save a document with attending: true
     try {
       await setDoc(userRef, {
         attending: false
@@ -139,11 +149,11 @@ async function main() {
     }
   };
 
+  // Listen for attendee list
   const attendingQuery = query(
-    collection(db, 'attendees'), 
+    collection(db, 'attendees'),
     where('attending', '==', true)
   );
-
   const unsubscribe = onSnapshot(attendingQuery, snap => {
     const newAttendeeCount = snap.docs.length;
     numberAttending.innerHTML = newAttendeeCount + ' people going';
@@ -151,40 +161,40 @@ async function main() {
 }
 main();
 
-// Listen for guestbook updates
-function subscribeGuestBook() {
+// Listen to guestbook updates
+function subscribeGuestbook() {
   const q = query(collection(db, 'guestbook'), orderBy('timestamp', 'desc'));
-  guestnookListener = onSnapshot(q, snaps => {
+  guestbookListener = onSnapshot(q, snaps => {
     // Reset page
     guestbook.innerHTML = '';
-    // Loop through documents in db
+    // Loop through documents in database
     snaps.forEach(doc => {
-      // Create an HTML entry for each document and add it to the chat. 
+      // Create an HTML entry for each document and add it to the chat
       const entry = document.createElement('p');
-      entry.textContent = doc.data().name + ':' + doc.data().text;
+      entry.textContent = doc.data().name + ': ' + doc.data().text;
       guestbook.appendChild(entry);
     });
   });
 }
 
-  // unsubscribe from guestbook updates
-  function unsubscribeGuestbook() {
-    if (guestbookListener != null){
-      guestbookListener();
-      guestbookListener = null;
-    }
+// Unsubscribe from guestbook updates
+function unsubscribeGuestbook() {
+  if (guestbookListener != null) {
+    guestbookListener();
+    guestbookListener = null;
   }
+}
 
 // Listen for attendee list
 function subscribeCurrentRSVP(user) {
   const ref = doc(db, 'attendees', user.uid);
-  rsvpListener = onSnapshot(ref, dock => {
+  rsvpListener = onSnapshot(ref, doc => {
     if (doc && doc.data()) {
       const attendingResponse = doc.data().attending;
 
       // Update css classes for buttons
       if (attendingResponse) {
-        rsvp.className = 'clicked';
+        rsvpYes.className = 'clicked';
         rsvpNo.className = '';
       } else {
         rsvpYes.className = '';
